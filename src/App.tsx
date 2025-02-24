@@ -1,35 +1,18 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import Builder from "./components/builder/builder";
+import { GlobalStyle } from "./styles/global-styles";
 
-function App() {
-  const [count, setCount] = useState(0)
-
+const App = () => {
   return (
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <GlobalStyle />
+      <Builder />
     </>
-  )
-}
+  );
+};
 
-export default App
+export default App;
+
+// Diseño basado en columnas y filas: Usar un sistema de grid para que los elementos se alineen automáticamente.
+// 🏗️ Orden secuencial: Cuando el usuario arrastre un elemento, se colocará en el orden en que lo suelte, como si estuviera construyendo una página de arriba hacia abajo.
+// ✨ Previsualización en tiempo real: Mientras el usuario arrastra, mostrar dónde se colocará el elemento con una animación o resaltado.
+// 🧩 Redimensionado y reordenamiento: Más adelante, podríamos permitir que los usuarios reorganicen o cambien el tamaño de los elementos.
