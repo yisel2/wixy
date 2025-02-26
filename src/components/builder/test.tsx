@@ -47,7 +47,7 @@ const Banner = styled(motion.div)`
   cursor: grab;
 `;
 
-const Canvas = styled(motion.div)<{ isDraggingOver: boolean }>`
+const WorkArea = styled(motion.div)<{ isDraggingOver: boolean }>`
   flex: 1;
   padding: 20px;
   border: 2px dashed ${(props) => (props.isDraggingOver ? "#3498db" : "#ccc")};
@@ -74,6 +74,7 @@ const DraggableComponent: React.FC<{
 
   return (
     <motion.div
+      // id={id}
       ref={setNodeRef}
       style={style}
       {...listeners}
@@ -86,16 +87,7 @@ const DraggableComponent: React.FC<{
   );
 };
 
-const WorkArea = ({ children }: { children: React.ReactNode }) => {
-  const { setNodeRef, isOver } = useDroppable({ id: "work-area" });
-  return (
-    <Canvas ref={setNodeRef} isDraggingOver={isOver}>
-      {children}
-    </Canvas>
-  );
-};
-
-// Componente estático (para el área de trabajo)
+// Componente Sortable (para elementos en el área de trabajo)
 const StaticComponent: React.FC<{ component: JSX.Element }> = ({
   component,
 }) => {
@@ -106,14 +98,11 @@ const StaticComponent: React.FC<{ component: JSX.Element }> = ({
 const Builder: React.FC = () => {
   const [components, setComponents] = useState<ComponentType[]>([]);
   const [activeId, setActiveId] = useState<ComponentId | null>(null);
-
   // Configurar el área de trabajo como un droppable
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
-    id: "work-area", // Asegúrate de que este ID sea único
+    id: "work-area",
   });
-
-  console.log({ isOver }); // Depuración
-
+  console.log({ isOver });
   // Componentes disponibles para arrastrar
   const availableComponents: ComponentType[] = [
     { id: "header", component: <Header>Header</Header> },
@@ -165,22 +154,16 @@ const Builder: React.FC = () => {
         </div>
 
         {/* Área de trabajo */}
-        {/* <WorkArea
-          id="work-area"
-          isDraggingOver={isOver} // Usar isOver directamente
+        <div
+          // id="work-area"
+          // isDraggingOver={isOver} // Usar isOver directamente
           ref={setDroppableRef} // Asignar la referencia del droppable
         >
           <h2>Área de Trabajo</h2>
           {components.map((comp) => (
             <StaticComponent key={comp.id} component={comp.component} />
           ))}
-        </WorkArea> */}
-        <WorkArea>
-          <h2>Área de Trabajo</h2>
-          {components.map((comp) => (
-            <StaticComponent key={comp.id} component={comp.component} />
-          ))}
-        </WorkArea>
+        </div>
       </div>
 
       {/* Overlay para el componente que se está arrastrando */}
