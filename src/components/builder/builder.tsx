@@ -1,141 +1,188 @@
-import { useState } from "react";
-import styled from "styled-components";
+import React, { JSX, useState } from "react";
 import {
   DndContext,
-  useDraggable,
-  useDroppable,
+  DragOverlay,
+  closestCenter,
   DragEndEvent,
   DragStartEvent,
-  DragOverlay,
+  useDraggable,
+  useDroppable,
 } from "@dnd-kit/core";
+import styled from "styled-components";
 import { motion } from "framer-motion";
 
-const BuilderContainer = styled.div`
-  display: flex;
-  height: 100vh;
+// Definición de tipos
+type ComponentType = {
+  id: string;
+  component: JSX.Element;
+};
+
+type ComponentId = string;
+
+// Componentes arrastrables
+const Header = styled(motion.div)`
+  background-color: #3498db;
+  color: white;
+  padding: 20px;
+  margin: 10px;
+  border-radius: 8px;
+  cursor: grab;
 `;
 
-const Sidebar = styled.div`
-  width: 250px;
-  background-color: #fff;
-  border-right: 1px solid #ddd;
-  padding: 16px;
+const Footer = styled(motion.div)`
+  background-color: #2ecc71;
+  color: white;
+  padding: 20px;
+  margin: 10px;
+  border-radius: 8px;
+  cursor: grab;
 `;
 
-const Canvas = styled.div`
+const Banner = styled(motion.div)`
+  background-color: #e74c3c;
+  color: white;
+  padding: 20px;
+  margin: 10px;
+  border-radius: 8px;
+  cursor: grab;
+`;
+
+const WorkArea = styled(motion.div)<{ isDraggingOver: boolean }>`
   flex: 1;
-  background-color: #fafafa;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  overflow-y: auto;
+  padding: 20px;
+  border: 2px dashed ${(props) => (props.isDraggingOver ? "#3498db" : "#ccc")};
+  border-radius: 8px;
+  background-color: ${(props) =>
+    props.isDraggingOver ? "rgba(52, 152, 219, 0.1)" : "transparent"};
+  transition: border-color 0.2s, background-color 0.2s;
 `;
 
-const DraggableItem = ({ id, label }: { id: string; label: string }) => {
-  const { attributes, listeners, setNodeRef } = useDraggable({ id });
+// Componente arrastrable (para la lista de componentes disponibles)
+const DraggableComponent: React.FC<{
+  id: ComponentId;
+  component: JSX.Element;
+}> = ({ id, component }) => {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({ id });
+
+  const style = transform
+    ? {
+        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+        scale: 1.1, // Escala aumentada al arrastrar
+        boxShadow: "0px 8px 16px rgba(0, 0, 0, 0.2)", // Sombra al arrastrar
+      }
+    : undefined;
+
   return (
     <motion.div
+      // id={id}
       ref={setNodeRef}
+      style={style}
       {...listeners}
       {...attributes}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-      style={{
-        padding: "8px",
-        marginBottom: "8px",
-        border: "1px solid #ccc",
-        borderRadius: "4px",
-        cursor: "grab",
-        backgroundColor: "#f9f9f9",
-        textAlign: "center",
-      }}
+      whileHover={{ scale: 1.05 }} // Animación al pasar el mouse
+      whileTap={{ scale: 0.95 }} // Animación al hacer clic
     >
-      {label}
+      {component}
     </motion.div>
   );
 };
 
-const DroppableArea = ({ children }: { children: React.ReactNode }) => {
-  const { setNodeRef, isOver } = useDroppable({ id: "canvas" });
-  return (
-    <Canvas
-      ref={setNodeRef}
-      style={{
-        border: isOver ? "2px dashed #4caf50" : "2px dashed transparent",
-        transition: "border 0.3s ease",
-      }}
-    >
-      {children}
-    </Canvas>
-  );
+// Componente Sortable (para elementos en el área de trabajo)
+const StaticComponent: React.FC<{ component: JSX.Element }> = ({
+  component,
+}) => {
+  return <div>{component}</div>;
 };
 
-const DraggingItem = ({ label }: { label: string }) => (
-  <motion.div
-    initial={{ scale: 1, opacity: 0.5 }}
-    animate={{ scale: 1.1, opacity: 1 }}
-    exit={{ scale: 0.95, opacity: 0 }}
-    transition={{ duration: 0.2 }}
-    style={{
-      padding: "8px",
-      border: "1px solid #ccc",
-      borderRadius: "4px",
-      backgroundColor: "#e0f7fa",
-      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
-    }}
-  >
-    {label}
-  </motion.div>
-);
+// Componente principal
+const Builder: React.FC = () => {
+  const [components, setComponents] = useState<ComponentType[]>([]);
+  const [activeId, setActiveId] = useState<ComponentId | null>(null);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  // Configurar el área de trabajo como un droppable
+  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+    id: "work-area",
+  });
+  console.log({ isOver });
+  // Componentes disponibles para arrastrar
+  const availableComponents: ComponentType[] = [
+    { id: "header", component: <Header>Header</Header> },
+    { id: "footer", component: <Footer>Footer</Footer> },
+    { id: "banner", component: <Banner>Banner</Banner> },
+  ];
 
-const Builder = () => {
-  const [elements, setElements] = useState<string[]>([]);
-  const [activeItem, setActiveItem] = useState<string | null>(null);
+  // Manejar el inicio del arrastre
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveItem(event.active.id as string);
+    setActiveId(event.active.id as ComponentId);
   };
 
+  // Manejar el final del arrastre
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (over && over.id === "canvas") {
-      setElements((prev) => [...prev, active.id]);
+
+    console.log("Evento onDragEnd:", { active, over }); // Depuración
+    // Verificar si el componente se soltó sobre el área de trabajo
+    if (over?.id === "work-area") {
+      const component = availableComponents.find(
+        (comp) => comp.id === active.id
+      );
+      if (component) {
+        setComponents([...components, component]);
+      }
     }
-    setActiveItem(null);
+
+    setActiveId(null);
   };
 
   return (
-    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <BuilderContainer>
-        <Sidebar>
-          <DraggableItem id="text" label="Texto" />
-          <DraggableItem id="image" label="Imagen" />
-        </Sidebar>
-        <DroppableArea>
-          {elements.map((el, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              style={{
-                padding: "12px",
-                marginBottom: "12px",
-                backgroundColor: "#fff",
-                borderRadius: "8px",
-                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
-              }}
-            >
-              {el === "text" ? "Texto de ejemplo" : "[Imagen]"}
-            </motion.div>
+    <DndContext
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      // onDragOver={handleDragOver}
+    >
+      <div style={{ display: "flex", gap: "20px" }}>
+        {/* Panel de componentes disponibles */}
+        <div>
+          <h2>Componentes Disponibles</h2>
+          {availableComponents.map((comp) => (
+            <DraggableComponent
+              key={comp.id}
+              id={comp.id}
+              component={comp.component}
+            />
           ))}
-        </DroppableArea>
-        <DragOverlay>
-          {activeItem ? (
-            <DraggingItem label={activeItem === "text" ? "Texto" : "Imagen"} />
-          ) : null}
-        </DragOverlay>
-      </BuilderContainer>
+        </div>
+
+        {/* Área de trabajo */}
+        <WorkArea
+          id="work-area"
+          isDraggingOver={isOver} // Usar isOver para manejar el estado
+          ref={setDroppableRef} // Asignar la referencia del droppable
+        >
+          <h2>Área de Trabajo</h2>
+          {components.map((comp) => (
+            <StaticComponent key={comp.id} component={comp.component} />
+          ))}
+        </WorkArea>
+      </div>
+
+      {/* Overlay para el componente que se está arrastrando */}
+      <DragOverlay>
+        {activeId ? (
+          <motion.div
+            style={{
+              scale: 1.1, // Escala aumentada
+              boxShadow: "0px 8px 16px rgba(0, 0, 0, 0.2)", // Sombra más pronunciada
+            }}
+          >
+            {
+              availableComponents.find((comp) => comp.id === activeId)
+                ?.component
+            }
+          </motion.div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 };
