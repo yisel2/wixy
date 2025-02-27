@@ -7,50 +7,16 @@ import {
   useDraggable,
   rectIntersection,
 } from "@dnd-kit/core";
-import styled from "styled-components";
 import { motion } from "framer-motion";
 import { Section, StaticSection } from "../section/section";
 import { ComponentType } from "./utils";
+import { Header } from "../header/header";
+import { Footer } from "../footer/footer";
+import { Banner } from "../banner/banner";
 
 // Definición de tipos
 
 type ComponentId = string;
-
-export const Header = ({ children }: { children: ReactNode }): ReactNode => (
-  <motion.div
-    initial={{ opacity: 0, y: -10 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.3 }}
-    style={{
-      backgroundColor: "#4caf50",
-      color: "white",
-      padding: "20px",
-      borderRadius: "8px",
-      cursor: "grab",
-      margin: "10px",
-    }}
-  >
-    {children}
-  </motion.div>
-);
-
-const Footer = styled(motion.div)`
-  background-color: #2ecc71;
-  color: white;
-  padding: 20px;
-  margin: 10px;
-  border-radius: 8px;
-  cursor: grab;
-`;
-
-const Banner = styled(motion.div)`
-  background-color: #e74c3c;
-  color: white;
-  padding: 20px;
-  margin: 10px;
-  border-radius: 8px;
-  cursor: grab;
-`;
 
 // Componente arrastrable (para la lista de componentes disponibles)
 const DraggableComponent: React.FC<{
