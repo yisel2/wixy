@@ -1,34 +1,38 @@
-import React, { JSX, useState } from "react";
+import React, { ReactNode, useState } from "react";
 import {
   DndContext,
   DragOverlay,
-  closestCenter,
   DragEndEvent,
   DragStartEvent,
   useDraggable,
-  useDroppable,
   rectIntersection,
 } from "@dnd-kit/core";
 import styled from "styled-components";
 import { motion } from "framer-motion";
+import { Section, StaticSection } from "../section/section";
+import { ComponentType } from "./utils";
 
 // Definición de tipos
-type ComponentType = {
-  id: string;
-  component: JSX.Element;
-};
 
 type ComponentId = string;
 
-// Componentes arrastrables
-const Header = styled(motion.div)`
-  background-color: #3498db;
-  color: white;
-  padding: 20px;
-  margin: 10px;
-  border-radius: 8px;
-  cursor: grab;
-`;
+export const Header = ({ children }: { children: ReactNode }): ReactNode => (
+  <motion.div
+    initial={{ opacity: 0, y: -10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.3 }}
+    style={{
+      backgroundColor: "#4caf50",
+      color: "white",
+      padding: "20px",
+      borderRadius: "8px",
+      cursor: "grab",
+      margin: "10px",
+    }}
+  >
+    {children}
+  </motion.div>
+);
 
 const Footer = styled(motion.div)`
   background-color: #2ecc71;
@@ -48,35 +52,21 @@ const Banner = styled(motion.div)`
   cursor: grab;
 `;
 
-// Área de trabajo (Canvas)
-const Canvas = styled(motion.div)<{ isDraggingOver: boolean }>`
-  width: 1200px; // Ancho fijo para simular una página web
-  min-height: 800px; // Altura mínima para simular una página web
-  padding: 20px;
-  border: 2px dashed ${(props) => (props.isDraggingOver ? "#3498db" : "#ccc")};
-  border-radius: 8px;
-  background-color: ${(props) =>
-    props.isDraggingOver ? "rgba(52, 152, 219, 0.1)" : "transparent"};
-  transition: border-color 0.2s, background-color 0.2s;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); // Sombra para simular una página web
-  position: relative; // Asegurar que el área de trabajo esté delimitada
-`;
-
 // Componente arrastrable (para la lista de componentes disponibles)
 const DraggableComponent: React.FC<{
   id: ComponentId;
-  component: JSX.Element;
+  component: ReactNode;
 }> = ({ id, component }) => {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id });
 
   const style = transform
     ? {
         transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-        scale: 1.1, // Escala aumentada al arrastrar
+        // scale: 1.1, // Escala aumentada al arrastrar
         boxShadow: "0px 8px 16px rgba(0, 0, 0, 0.2)", // Sombra al arrastrar
       }
     : undefined;
-
+  // TODO: Arreglar los estilos
   return (
     <motion.div
       ref={setNodeRef}
@@ -85,42 +75,14 @@ const DraggableComponent: React.FC<{
       {...attributes}
       whileHover={{ scale: 1.05 }} // Animación al pasar el mouse
       whileTap={{ scale: 0.95 }} // Animación al hacer clic
-      onClick={(e) => e.preventDefault()} // Evitar que el clic agregue el componente
     >
       {component}
     </motion.div>
   );
 };
 
-const WorkArea = ({
-  children,
-  id,
-}: {
-  children: React.ReactNode;
-  id: string;
-}) => {
-  const { setNodeRef, isOver } = useDroppable({ id: id });
-  return (
-    <Canvas
-      ref={setNodeRef}
-      isDraggingOver={isOver}
-      style={{ position: "relative" }} // Asegurar que el área de trabajo esté delimitada
-    >
-      {children}
-    </Canvas>
-  );
-};
-
-// Componente estático (para el área de trabajo)
-const StaticComponent: React.FC<{ component: JSX.Element }> = ({
-  component,
-}) => {
-  return <div>{component}</div>;
-};
-
 // Componente principal
 const Builder: React.FC = () => {
-  // const [components, setComponents] = useState<ComponentType[]>([]);
   const [components, setComponents] = useState<{
     [key: string]: ComponentType[];
   }>({
@@ -128,12 +90,15 @@ const Builder: React.FC = () => {
     "work-area-2": [], // Lista de componentes para el área de trabajo 2
   });
   const [activeId, setActiveId] = useState<ComponentId | null>(null);
-
   // Componentes disponibles para arrastrar
   const availableComponents: ComponentType[] = [
     { id: "header", component: <Header>Header</Header> },
     { id: "footer", component: <Footer>Footer</Footer> },
     { id: "banner", component: <Banner>Banner</Banner> },
+    {
+      id: "section", // ID genérico para el Section
+      component: <StaticSection />, // Usamos StaticSection para la visualización
+    },
   ];
 
   // Manejar el inicio del arrastre
@@ -144,22 +109,103 @@ const Builder: React.FC = () => {
   // Manejar el final del arrastre
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    console.log({ over });
-    // Verificar si el componente se soltó sobre el área de trabajo
-    if (over?.id === "work-area") {
+
+    const activeId = String(active?.id);
+    const overId = String(over?.id);
+
+    if (overId) {
       const component = availableComponents.find(
-        (comp) => comp.id === active.id
+        (comp) => comp.id === activeId
       );
+
       if (component) {
-        setComponents([...components, component]);
+        setComponents((prevComponents) => {
+          const newComponents = { ...prevComponents };
+
+          // Función recursiva para actualizar el estado components
+          const updateComponents = (
+            components: { [key: string]: ComponentType[] },
+            targetId: string
+          ) => {
+            if (components[targetId]) {
+              // Verificar si el componente ya existe en el área de trabajo
+              const componentExists = components[targetId].some(
+                (comp) => comp.id === activeId
+              );
+
+              if (!componentExists) {
+                if (component.id === "section") {
+                  // Si es un Section, agregar un Section normal
+                  components[targetId] = [
+                    ...(components[targetId] || []),
+                    {
+                      id: `section-${Date.now()}`, // ID único para el Section
+                      component: (
+                        <Section
+                          id={`section-${Date.now()}`}
+                          components={components} // Pasar el estado components
+                        />
+                      ),
+                      children: [], // Inicializar como un array vacío
+                    },
+                  ];
+                } else {
+                  // Para otros componentes (Header, Footer, Banner)
+                  components[targetId] = [
+                    ...(components[targetId] || []),
+                    { ...component, children: [] }, // Inicializar como un array vacío
+                  ];
+                }
+              }
+            } else {
+              // Si el targetId no existe, buscar en los componentes anidados
+              Object.keys(components).forEach((key) => {
+                components[key].forEach((comp) => {
+                  if (comp.children) {
+                    // Verificar si el targetId coincide con el ID del Section
+                    if (comp.id === targetId) {
+                      // Si es un Section, agregar el componente al children
+                      const componentExists = comp.children.some(
+                        (child) => child.id === activeId
+                      );
+
+                      if (!componentExists) {
+                        comp.children.push({
+                          id: activeId,
+                          component: component.component,
+                          children: [],
+                        });
+                      }
+                    } else {
+                      // Llamar recursivamente a updateComponents con comp.children
+                      updateComponents({ [comp.id]: comp.children }, targetId);
+                    }
+                  }
+                });
+              });
+            }
+          };
+
+          updateComponents(newComponents, overId);
+          console.log("Estado actualizado:", newComponents); // Depuración
+          return newComponents;
+        });
+      } else {
+        console.log("No se encontró el componente");
       }
+    } else {
+      console.log("No se soltó en ninguna sección");
     }
 
     setActiveId(null);
   };
 
   return (
-    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext
+      collisionDetection={rectIntersection}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
       <div style={{ display: "flex", gap: "20px" }}>
         {/* Panel de componentes disponibles */}
         <div>
@@ -172,12 +218,17 @@ const Builder: React.FC = () => {
             />
           ))}
         </div>
-        <WorkArea id="work-area">
-          <h2>Área de Trabajo</h2>
-          {components.map((comp) => (
-            <StaticComponent key={comp.id} component={comp.component} />
-          ))}
-        </WorkArea>
+        <div>
+          <Section
+            id="work-area-1"
+            flexDirection="column"
+            justifyContent="flex-start"
+            alignItems="stretch"
+            components={components}
+          >
+            <h2>Área de Trabajo 1</h2>
+          </Section>
+        </div>
       </div>
 
       {/* Overlay para el componente que se está arrastrando */}
@@ -185,7 +236,6 @@ const Builder: React.FC = () => {
         {activeId ? (
           <motion.div
             style={{
-              scale: 1.1, // Escala aumentada
               boxShadow: "0px 8px 16px rgba(0, 0, 0, 0.2)", // Sombra más pronunciada
             }}
           >

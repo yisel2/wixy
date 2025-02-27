@@ -16,3 +16,13 @@ export const Header = () => (
     Header de ejemplo
   </motion.div>
 );
+
+// Componentes arrastrables
+const Header = styled(motion.div)`
+  background-color: #3498db;
+  color: white;
+  padding: 20px;
+  margin: 10px;
+  border-radius: 8px;
+  cursor: grab;
+`;
