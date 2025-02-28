@@ -17,3 +17,22 @@ export const Header = ({ children }: { children: ReactNode }): ReactNode => (
     {children}
   </motion.div>
 );
+
+// Versión estática del Header
+export const StaticHeader = ({
+  children,
+}: {
+  children: ReactNode;
+}): ReactNode => (
+  <div
+    style={{
+      backgroundColor: "#4caf50",
+      color: "white",
+      padding: "20px",
+      borderRadius: "8px",
+      margin: "10px",
+    }}
+  >
+    {children}
+  </div>
+);

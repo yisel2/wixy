@@ -9,7 +9,7 @@ import {
 } from "@dnd-kit/core";
 import { motion } from "framer-motion";
 import { Section, StaticSection } from "../section/section";
-import { ComponentType } from "./utils";
+import { ComponentType, exportPage } from "./utils";
 import { Header } from "../header/header";
 import { Footer } from "../footer/footer";
 import { Banner } from "../banner/banner";
@@ -153,7 +153,7 @@ const Builder: React.FC = () => {
           };
 
           updateComponents(newComponents, overId);
-          console.log("Estado actualizado:", newComponents); // Depuración
+
           return newComponents;
         });
       } else {
@@ -196,6 +196,14 @@ const Builder: React.FC = () => {
           </Section>
         </div>
       </div>
+
+      {/* Botón para exportar la página */}
+      <button
+        onClick={() => exportPage(components)}
+        style={{ margin: "20px", padding: "10px 20px", fontSize: "16px" }}
+      >
+        Exportar Página
+      </button>
 
       {/* Overlay para el componente que se está arrastrando */}
       <DragOverlay>
